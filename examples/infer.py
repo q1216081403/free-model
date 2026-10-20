@@ -9,8 +9,8 @@ from pathlib import Path
 
 import numpy as np
 
-# allow running without installing the package
-sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+# allow running without installing the package (package lives under src/)
+sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
 
 from free_model import FreeModel, FreeModelConfig  # noqa: E402
 

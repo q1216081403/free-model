@@ -82,6 +82,11 @@ Export to a portable format:
 python scripts/export.py         # fill in ONNX / safetensors exporter
 ```
 
+## Local run (Windows)
+
+After `pip install -e .`, double-click `run_infer.bat` to run a forward pass,
+or `run_tests.bat` to run the test suite — no extra environment setup needed.
+
 ## Using the model in code
 
 ```python
