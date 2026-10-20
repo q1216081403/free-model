@@ -1,0 +1,10 @@
+# Core runtime
+numpy>=1.24
+
+# Development
+pytest>=7.0
+
+# Optional: model export (uncomment as needed)
+# onnx
+# onnxruntime
+# safetensors
