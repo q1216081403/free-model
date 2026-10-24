@@ -1,0 +1,92 @@
+name: Publish to Hugging Face Hub
+
+# Publishes the free-model package + model card to the Hugging Face Hub.
+# Requires a repository secret named HF_TOKEN (a Hugging Face write token).
+# Optional repository variables: HF_USERNAME (default q1216081403),
+# HF_REPO_NAME (default free-model).
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "src/**"
+      - "MODEL_CARD.md"
+      - "scripts/**"
+      - "checkpoints/**"
+      - ".github/workflows/hf-publish.yml"
+  workflow_dispatch:
+
+concurrency:
+  group: hf-publish
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  publish:
+    name: Publish model to Hugging Face Hub
+    runs-on: ubuntu-latest
+    env:
+      HF_TOKEN: ${{ secrets.HF_TOKEN }}
+      HF_USERNAME: ${{ vars.HF_USERNAME || 'q1216081403' }}
+      HF_REPO_NAME: ${{ vars.HF_REPO_NAME || 'free-model' }}
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Fail fast if HF_TOKEN is missing
+        shell: bash
+        run: |
+          if [ -z "${HF_TOKEN}" ]; then
+            echo "::error::Missing HF_TOKEN. Add it under Settings > Secrets and variables > Actions."
+            exit 1
+          fi
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install huggingface_hub
+        run: pip install huggingface_hub
+
+      - name: Stage files for the Hub
+        shell: bash
+        run: |
+          set -euo pipefail
+          rm -rf stage
+          mkdir -p stage
+          # Hugging Face renders README.md as the model card
+          cp MODEL_CARD.md stage/README.md
+          # ship the package source
+          cp -r src/free_model stage/free_model
+          # ship trained weights when a checkpoint is committed
+          if [ -d checkpoints ]; then
+            cp -r checkpoints stage/checkpoints
+          fi
+          find stage -type f | sort
+
+      - name: Push to Hugging Face Hub
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'EOF'
+          import os
+
+          from huggingface_hub import HfApi
+
+          username = os.environ.get("HF_USERNAME") or "q1216081403"
+          repo_name = os.environ.get("HF_REPO_NAME") or "free-model"
+          repo_id = f"{username}/{repo_name}"
+
+          api = HfApi(token=os.environ["HF_TOKEN"])
+          api.create_repo(repo_id, repo_type="model", exist_ok=True, private=False)
+          api.upload_folder(
+              repo_id=repo_id,
+              repo_type="model",
+              folder_path="stage",
+              commit_message="Sync from GitHub q1216081403/free-model",
+          )
+          print(f"Published to https://huggingface.co/{repo_id}")
+          EOF

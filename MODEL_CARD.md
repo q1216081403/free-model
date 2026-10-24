@@ -1,3 +1,11 @@
+---
+license: mit
+tags:
+  - mlp
+  - numpy
+  - skeleton
+---
+
 # Model Card — free-model
 
 > Template. Fill this in with real information before publishing.
